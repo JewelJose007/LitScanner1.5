@@ -8,6 +8,37 @@ from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, HTTPException, Query, Request
 from pydantic import BaseModel
 import httpx
+import traceback
+from flask import Flask, jsonify, request
+
+app = Flask(__name__)
+
+# Global error handler to prevent crashes
+@app.errorhandler(Exception)
+def handle_exception(e):
+    error_details = traceback.format_exc()
+    print("SERVER ERROR:", error_details)  # Logs to Vercel's console
+    return jsonify({
+        "status": "error",
+        "message": "Something went wrong, but the server is still running.",
+        "details": str(e)
+    }), 500
+
+# Health check route
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({"message": "Server is up and running!"})
+
+# Example POST route
+@app.route("/process", methods=["POST"])
+def process():
+    data = request.get_json(force=True)
+    return jsonify({"received": data})
+
+# For local testing only
+if __name__ == "__main__":
+    app.run()
+
 
 # Try Redis; fall back to simple in-memory store for dev if REDIS_URL is not set.
 REDIS_URL = os.getenv("REDIS_URL", "").strip() or None
@@ -323,4 +354,4 @@ async def worker_step(req: Request):
 
             processed.append(pid)
 
-    return {"processed": processed, "count": len(processed)}
+    return {"processed": processed, "count": len(processed)}    
