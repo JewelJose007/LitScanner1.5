@@ -14,6 +14,10 @@ from dotenv import load_dotenv
 
 from summarizer import generate_summary
 from topic_modeling import generate_topic_clusters
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+import sys
+
 
 load_dotenv()
 
@@ -25,6 +29,14 @@ app = FastAPI(title="LitHybrid - Vercel-safe API")
 # ---------------------------
 # Error Handling
 # ---------------------------
+app = FastAPI()
+
+@app.get("/")
+async def home():
+    return JSONResponse({
+        "status": "ok",
+        "python_version": sys.version
+    })
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     error_details = traceback.format_exc()
