@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>LitHybrid — Demo</title>
+<style>
+  body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;max-width:980px;margin:32px auto;color:#111}
+  .card{border-radius:12px;padding:20px;border:1px solid #eee;margin-bottom:16px;box-shadow:0 2px 8px rgba(10,10,10,0.02)}
+  button{padding:8px 14px;border-radius:8px;border:0;background:#0b5cff;color:#fff;cursor:pointer}
+  input,select{padding:8px;border-radius:8px;border:1px solid #ddd;width:100%}
+  label{display:block;margin-bottom:6px;font-weight:600}
+  .muted{color:#6c757d;font-size:0.9rem}
+  pre{background:#f8f9fa;padding:12px;border-radius:8px;overflow:auto}
+</style>
+</head>
+<body>
+<h1>LitHybrid — Demo UI</h1>
+<div class="card" aria-labelledby="create-heading">
+  <h2 id="create-heading">Create project</h2>
+  <label for="title">Title / Query</label>
+  <input id="title" placeholder="e.g., graph neural networks for chemistry" />
+  <label for="max_papers">Max papers</label>
+  <input id="max_papers" type="number" value="200" min="10" />
+  <label for="per_run">Per-run (worker step page size)</label>
+  <input id="per_run" type="number" value="50" min="5" />
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <button id="start">Start Job</button>
+  </div>
+  <div id="createResult" style="margin-top:10px" class="muted" role="status"></div>
+</div>
+
+<div class="card" aria-labelledby="track-heading">
+  <h2 id="track-heading">Track / operate</h2>
+  <label for="job_id">Project (job) ID</label>
+  <input id="job_id" placeholder="Paste project_id" />
+  <div style="display:flex;gap:8px;margin-top:8px">
+    <button id="statusBtn">Check Status</button>
+    <button id="papersBtn">Fetch First Page</button>
+    <button id="runStepBtn">Run Worker Step (manual)</button>
+  </div>
+  <div id="statusOut" style="margin-top:12px"></div>
+  <div id="papersOut" style="margin-top:12px"></div>
+</div>
+
+<script>
+const API_BASE = location.origin;
+
+document.getElementById('start').onclick = async ()=>{
+  const title = document.getElementById('title').value.trim();
+  const max_papers = Number(document.getElementById('max_papers').value) || 200;
+  const per_run = Number(document.getElementById('per_run').value) || 50;
+  if(!title){ alert('enter a title'); return }
+  const res = await fetch(API_BASE + '/api/projects', {
+    method:'POST', headers:{'content-type':'application/json'},
+    body: JSON.stringify({title, max_papers, per_run})
+  });
+  const j = await res.json();
+  document.getElementById('createResult').innerText = 'Created project_id: ' + (j.project_id || JSON.stringify(j));
+  document.getElementById('job_id').value = j.project_id || '';
+};
+
+document.getElementById('statusBtn').onclick = async ()=>{
+  const id = document.getElementById('job_id').value.trim();
+  if(!id){ alert('paste job id'); return }
+  const res = await fetch(API_BASE + '/api/projects/' + id + '/status');
+  const j = await res.json();
+  document.getElementById('statusOut').innerHTML = '<pre>' + JSON.stringify(j, null, 2) + '</pre>';
+};
+
+document.getElementById('papersBtn').onclick = async ()=>{
+  const id = document.getElementById('job_id').value.trim();
+  if(!id){ alert('paste job id'); return }
+  const res = await fetch(API_BASE + '/api/projects/' + id + '/papers?page=1&per_page=10');
+  const j = await res.json();
+  document.getElementById('papersOut').innerHTML = '<pre>' + JSON.stringify(j, null, 2) + '</pre>';
+};
+
+document.getElementById('runStepBtn').onclick = async ()=>{
+  const id = document.getElementById('job_id').value.trim();
+  const body = id ? {project_id:id} : {};
+  const res = await fetch(API_BASE + '/api/worker_step', {
+    method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body)
+  });
+  const j = await res.json();
+  alert('worker_step processed: ' + JSON.stringify(j));
+};
+</script>
+</body>
+</html>
